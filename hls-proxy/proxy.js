@@ -383,10 +383,40 @@ const proxy = function({server, host, is_secure, req_headers, req_options, hooks
     })
   }
 
-  // Create an HTTP tunneling proxy
-  server.on('request', (req, res) => {
-    debug(3, 'proxying (raw):', req.url)
+  var channels = new Array();
 
+
+
+  function getHtmlChannelsTable(){
+    var out = "<h2>Channels</h2><br>";
+    for(var c = 0; c < channels.length; ++c){
+      if (!(typeof channels[c] === 'undefined'))
+        out += "<a href='"+ process.env.PROTOCOL+ "://"+ process.env.LISTENING_IP + ":" + process.env.LISTENING_PORT + "/stream.m3u8?channel=" + c + "'>CHANNEL "+ c + "</a><br>";  
+        // out += "CHANNEL " + c + " -> " + channels[c] + "<br>";
+    }
+    return out;
+  }
+
+  function getForm(){
+    const fs = require('fs');
+    var form = fs.readFileSync("./hls-proxy/html/setup.html", "utf8");
+    form = form.replace("<!--CHANNELSTABLE-->", getHtmlChannelsTable());
+    return form;
+  }
+  
+  function getList(){
+    var list = "";
+    for(var c = 0; c < channels.length; ++c){
+      if (!(typeof channels[c] === 'undefined')){
+        list += "#EXTM3U\n";
+        list += "#EXTINF:-1,Canal " + c + "\n";
+        list += process.env.PROTOCOL+ "://"+process.env.LISTENING_IP + ":" + process.env.LISTENING_PORT + "/stream.m3u8?channel=" + c + "\n";
+      }
+    }
+    return list;
+  }
+
+  function processM3u8(req, res){
     add_CORS_headers(res)
 
     const [url, referer_url] = (() => {
@@ -421,7 +451,7 @@ const proxy = function({server, host, is_secure, req_headers, req_options, hooks
         return
       }
     }
-
+    
     const options = get_request_options(url, referer_url)
     debug(1, 'proxying:', url)
     debug(3, 'm3u8:', (is_m3u8 ? 'true' : 'false'))
@@ -441,6 +471,69 @@ const proxy = function({server, host, is_secure, req_headers, req_options, hooks
       res.writeHead(500)
       res.end()
     })
+  }
+
+  function is_hex(str) {
+    var re = /[0-9A-Fa-f]{6}/g;
+    if (re.test(str))
+      return true;
+    return false;
+  }
+
+  // Create an HTTP tunneling proxy
+  server.on('request', (req, res) => {
+    const get = require('url').parse(req.url, true).query;
+    if (req.url.startsWith("/setChannel")){
+      var url = "";
+      if (get.url.startsWith("http")) {
+        url = get.url;
+      }
+      if (get.url.startsWith("acestream://")) {
+        url = process.env.ACESTREAM_M3U8_URL + get.url.substring(12);
+      }
+      if (is_hex(get.url) && get.url.length == 40) {
+        url = process.env.ACESTREAM_M3U8_URL + get.url;
+      }      
+      channels[get.channel] = base64_encode(url ) + ".m3u8";
+      if (typeof get.form === 'undefined'){
+        res.writeHead(200)
+        res.end("OK!");        
+        return;
+      } else {
+        res.writeHead(200)
+        res.end(getForm());   
+        return;     
+      }
+    }
+
+
+
+    if (req.url.startsWith("/list.m3u8")){
+      res.writeHead(200, { "Content-Type": "application/x-mpegURL" })
+      res.end(getList());
+      return;
+    }
+
+    if (req.url.startsWith("/")){
+      res.writeHead(200)
+      res.end(getForm());
+      return;
+    }
+
+    console.log("Going to stream: " + req.url);
+
+    debug(3, 'proxying (raw):', req.url)
+
+    if (req.url.startsWith("/stream.m3u8")){
+      if ((typeof channels[get.channel] === 'undefined')){
+        res.writeHead(400)
+        res.end("NOT FOUND");        
+        return;
+      }
+      req.url = "/" + channels[get.channel];
+    } 
+    processM3u8(req,res);
+
   })
 }
 
