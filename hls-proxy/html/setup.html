@@ -75,7 +75,7 @@ input[type=submit]:hover {
 <br>
 </div>
 <div class="container">
-  <form method="get" name="channelsSetupForm" onsubmit="submitForm();" action="http://192.168.1.128:8080/setChannel">
+  <form method="get" name="channelsSetupForm" action="<!--SETCHANNELURL-->">
     <div class="row">
       <div class="col-25">
         <label for="country">Channel</label>
@@ -108,29 +108,6 @@ input[type=submit]:hover {
       <input type="submit" value="Submit">
     </div>
   </form>
-  <script>
-    function is_hex(str) {
-      var re = /[0-9A-Fa-f]{6}/g;
-      if (re.test(str))
-        return true;
-      return false;
-    }
-    function submitForm() {
-      var url = document.channelsSetupForm.url.value;
-      var acestreamHost = "http://192.168.1.22:6878/ace/manifest.m3u8?id=";
-      if (url.startsWith("http")) {
-
-      }
-      if (url.startsWith("acestream://")) {
-        url = url.substring(13);
-      }
-      if (is_hex(url) && url.length == 40) {
-        url = acestreamHost + url;
-      }
-
-      //document.channelsSetupForm.url.value = btoa(url)+".m3u8";
-    }
-  </script>
 </div>
 
 </body>

@@ -401,6 +401,7 @@ const proxy = function({server, host, is_secure, req_headers, req_options, hooks
     const fs = require('fs');
     var form = fs.readFileSync("./hls-proxy/html/setup.html", "utf8");
     form = form.replace("<!--CHANNELSTABLE-->", getHtmlChannelsTable());
+    form = form.replace("<!--SETCHANNELURL-->", process.env.PROTOCOL+ "://"+process.env.LISTENING_IP + ":" + process.env.LISTENING_PORT + "/setChannel");
     return form;
   }
   
@@ -514,7 +515,7 @@ const proxy = function({server, host, is_secure, req_headers, req_options, hooks
       return;
     }
 
-    if (req.url.startsWith("/")){
+    if (req.url == "/"){
       res.writeHead(200)
       res.end(getForm());
       return;

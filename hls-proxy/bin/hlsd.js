@@ -20,14 +20,6 @@ if (portPos == -1){
     process.env.LISTENING_PORT = process.argv[portPos + 1];
 }
 
-if ( ! (typeof process.env.LISTENING_PORT === "undefined" ) ){
-    process.argv.push("--port");
-    process.argv.push(process.env.LISTENING_PORT);
-} else {
-    process.argv.push("--port");
-    process.argv.push("8080");
-}
-
 if ( typeof process.env.PROTOCOL === 'undefined')
     process.env.PROTOCOL = "http";
 
